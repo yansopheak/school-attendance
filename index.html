@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Attendance Scanner</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: 'Khmer OS Battambang', sans-serif; text-align: center; background: #f0f2f5; }
+        #reader { width: 100%; max-width: 400px; margin: 20px auto; border: 4px solid #007bff; border-radius: 15px; }
+        .status-box { padding: 15px; margin: 10px; background: white; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .error { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h2>ប្រព័ន្ធស្កេនវត្តមាន (GPS)</h2>
+    <div id="reader"></div>
+    <div class="status-box" id="location-status">កំពុងឆែកទីតាំង GPS...</div>
+
+    <script>
+        const WEB_APP_URL = "ដាក់_WEB_APP_URL_"https://script.google.com/u/0/home/projects/1O_nLnMNwnmddQh2eugY2ycGS-eNiZom5JLJRQlB7KWKR-NfSSFwVj_11/edit";
+        let userLat = null;
+        let userLon = null;
+
+        // ១. ចាប់យកទីតាំង GPS ជាមុនសិន
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                userLat = position.coords.latitude;
+                userLon = position.coords.longitude;
+                document.getElementById('location-status').innerText = "ទីតាំង GPS: រួចរាល់ (អាចស្កេនបាន)";
+                startScanner();
+            },
+            (error) => {
+                document.getElementById('location-status').innerHTML = "<span class='error'>សូមបើក GPS លើទូរស័ព្ទរបស់អ្នកជាមុនសិន!</span>";
+            },
+            { enableHighAccuracy: true }
+        );
+
+        function startScanner() {
+            var html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+            html5QrcodeScanner.render(onScanSuccess);
+        }
+
+        function onScanSuccess(decodedText) {
+            if (!userLat || !userLon) {
+                alert("មិនទាន់មានទិន្នន័យទីតាំង! សូមរង់ចាំមួយភ្លែត។");
+                return;
+            }
+
+            document.getElementById('location-status').innerText = "កំពុងផ្ញើទិន្នន័យវត្តមាន...";
+            
+            fetch(WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    id: decodedText,
+                    latitude: userLat,
+                    longitude: userLon
+                })
+            })
+            .then(res => res.text())
+            .then(data => {
+                alert("កត់វត្តមានជោគជ័យ!\nID: " + decodedText + "\nទីតាំង: " + userLat + ", " + userLon);
+                location.reload();
+            })
+            .catch(err => alert("កំហុសបច្ចេកទេស៖ " + err));
+        }
+    </script>
+</body>
+</html>
